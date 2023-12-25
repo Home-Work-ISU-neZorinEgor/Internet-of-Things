@@ -1,10 +1,12 @@
-String AP_NAME = "ESP8266EGOR";
-String AP_PASSWORD = "ESP8266333";
+// CLI WiFi client
+const char* CLI_SSID = "Honor 8X"; //делал на wifi Вадима
+const char* CLI_PASS = "12233377";
 
-//cli wifi client
-char* CLI_SSID = "Honor 8X"; //2.4 GHz
-char* CLI_PASS = "12233377"; 
+// Access login and password
+const char* ACCESS_LOGIN = "user";
+const char* ACCESS_PASSWORD = "userEg";
 
-const char* mqtt_broker = "broker.emqx.io";
+int WEB_SERVER_PORT = 80;
+bool mqtt_started = false;
 const int mqtt_port = 1883;
-
+char* mqtt_broker = "broker.emqx.io";

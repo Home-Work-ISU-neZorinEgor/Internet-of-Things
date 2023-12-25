@@ -24,8 +24,6 @@ void setup() {
   Serial.println("See me at " + state_topic);
 }
 
-
-
 void loop() {
   server.handleClient();
   mqtt_client.loop();
