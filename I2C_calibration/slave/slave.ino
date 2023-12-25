@@ -1,105 +1,111 @@
-#include Wire.h
+#include <Wire.h>
 
 #define PHOTO_RES_IN A0
-#define I2C_ADDRES 9
+#define I2C_ADDRESS 9
 #define LED_PIN 13
 
-int max_records = 0;
+int maxRecords = 0;
 int currentRecord = 0;
-int x;
-int y;
+int* xValues;
+int* yValues;
 bool calibrationStarted = false;
 bool showData = false;
 
 long lastTime = 0;
-bool state = HIGH;
+bool ledState = HIGH;
 
-int getMyPhotoResValue(){
+int getPhotoResValue(){
   return analogRead(PHOTO_RES_IN);
 }
 
 void setup() {
   pinMode(LED_PIN, OUTPUT);
   Serial.begin(9600);
-  Serial.println();
-  Serial.println(fuckng Slave);
-  Wire.begin(I2C_ADDRES);
+  Serial.println("");
+  Serial.println("freaking Slave");
+  Wire.begin(I2C_ADDRESS);
   Wire.onReceive(processData);
 }
 
 void loop() {
   if (calibrationStarted) {
-      blinkLed(lastTime, state);
-    }
+    blinkLed(lastTime, ledState);
+  }
   if (Serial.available()) {
     char cmd = Serial.read();
-    if (cmd == 'r') {
-      int currentRecord = 0;
-      calibrationStarted = false;
-    }
-    if (cmd == 's') {
-      showData = !showData;
+    switch (cmd) {
+      case 'r':
+        currentRecord = 0;
+        calibrationStarted = false;
+        break;
+      case 's':
+        showData = !showData;
+        break;
     }
   }
   if (showData) {
-    if (max_records != 0) {
-      Serial.print(Calibrated value );
-      Serial.println(linearInterpolation(getMyPhotoResValue()));
+    if (maxRecords != 0) {
+      Serial.print("Calibrated value: ");
+      Serial.println(linearInterpolation(getPhotoResValue()));
     } else {
-      Serial.print(Raw value );
-      Serial.println(getMyPhotoResValue());
+      Serial.print("Raw value: ");
+      Serial.println(getPhotoResValue());
     }
   }
 }
 
-float linearInterpolation(int x_new) {
+float linearInterpolation(int xNew) {
     int i = 0;
-    while (i  currentRecord - 1 && x[i + 1]  x_new) {
+    while (i < currentRecord - 1 && xValues[i + 1] < xNew) {
         i++;
     }
-    int x0 = x[i];
-    int y0 = y[i];
-    int x1 = x[i + 1];
-    int y1 = y[i + 1];
-    return y0 + (y1 - y0)  (x_new - x0)  (x1 - x0);
+    int x0 = xValues[i];
+    int y0 = yValues[i];
+    int x1 = xValues[i + 1];
+    int y1 = yValues[i + 1];
+    return y0 + (y1 - y0) * (xNew - x0) / (x1 - x0);
 }
 
 void processData(int length){
-  int last_val = 0;
-  while (0  Wire.available()){
+  int lastVal = 0;
+  while (0 < Wire.available()){
     auto result = Wire.read();
-    if (result == 'r') {
-      max_records = Wire.read();
-      Serial.print(Max records );
-      Serial.println(max_records);
-      x = new int[max_records];
-      y = new int[max_records];
-    } else if (result == 's') {
-      Serial.println(Calibration done);
-      calibrationStarted = false;
-      digitalWrite(LED_PIN, HIGH);
-      showData = true;
-      return;
-    } else if (result == 'c') {
-      currentRecord = 0;
-      calibrationStarted = true;
-      Serial.println(Calibration started);
-    } else {
-      if (currentRecord  max_records && calibrationStarted){
-        int data = result  5;
-        int currentResistence = getMyPhotoResValue();
-        x[currentRecord] = currentResistence;
-        y[currentRecord] = data;
-        currentRecord+=1;
-        Serial.println(Calibrating...);
-       }
+    switch (result) {
+      case 'r':
+        maxRecords = Wire.read();
+        Serial.print("Max records: ");
+        Serial.println(maxRecords);
+        xValues = new int[maxRecords];
+        yValues = new int[maxRecords];
+        break;
+      case 's':
+        Serial.println("Calibration done");
+        calibrationStarted = false;
+        digitalWrite(LED_PIN, HIGH);
+        showData = true;
+        return;
+      case 'c':
+        currentRecord = 0;
+        calibrationStarted = true;
+        Serial.println("Calibration started");
+        break;
+      default:
+        if (currentRecord < maxRecords && calibrationStarted){
+          int data = result * 5;
+          int currentResistence = getPhotoResValue();
+          xValues[currentRecord] = currentResistence;
+          yValues[currentRecord] = data;
+          currentRecord += 1;
+          Serial.println("Calibrating...");
+        }
+        break;
     }
   }
 }
 
 void blinkLed(long &lastTime, bool &state) {
   long currentTime = millis();
-  if (currentTime - lastTime  100) {
+  if (currentTime - lastTime > 100) {
     digitalWrite(LED_PIN, state);
     lastTime = currentTime;
     state = !state;
