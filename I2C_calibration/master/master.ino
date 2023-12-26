@@ -1,104 +1,103 @@
 #include <Wire.h>
 
+#define PHOTO_RES A0
+#define SLAVE_ADDRESS 9
 
-const int PHOTO_RES = A0;
-const int SLAVE_ADDRESS = 9;
+bool isCalibration = false;
+bool isReportSent = false;
+bool dataSendAborted = false;
+bool showData = false;
+bool minRangeChecked = false;
+bool maxRangeChecked = false;
+int minRange = -1;
+int maxRange = -1;
 
+int previousValue = -1;
+int counter = 0;
+int recordsToDo = 0;
 
 const int STEP = 10;
 const int DIFF = 10;
 const int ARCHIVE_FACTOR = 5;
 
-// Calibration state enum
-enum CalibrationState {
-  NOT_CALIBRATING,
-  CALIBRATING_MIN,
-  CALIBRATING_MAX
-};
-
-
-int photoResValue = -1;
-int minRangeThreshold = -1;
-int maxRangeThreshold = -1;
-bool minRangeChecked = false;
-bool maxRangeChecked = false;
-int previous = -1;
-int cntr = 0;
-int recordsToDo = 0;
-bool isCalibration = false;
-bool isReportSent = false;
-bool dataSendAborted = false;
-bool showData = false;
+int getPhotoResValue() {
+  return analogRead(PHOTO_RES);
+}
 
 void setup() {
   pinMode(PHOTO_RES, INPUT);
   Serial.begin(9600);
-  Serial.println("Dungeon Master");
+  Serial.println("dungeon master");
   Wire.begin();
 }
 
-void switchShowData() {
+void toggleShowData() {
   showData = !showData;
 }
 
-void handleSerialInput() {
-  if (Serial.available()) {
-    char cmd = Serial.read();
+void resetCalibration() {
+  isCalibration = false;
+  isReportSent = false;
+  dataSendAborted = false;
+  minRange = -1;
+  maxRange = -1;
+  maxRangeChecked = false;
+  minRangeChecked = false;
+  previousValue = -1;
+  counter = 0;
+  recordsToDo = 0;
+  Serial.println("Resetted");
+}
 
-    switch (cmd) {
-      case 's':
-        switchShowData();
-        break;
-      case 'c':
-        Serial.println("'o' to confirm. LIGHT OFF");
-        break;
-      case 'r':
-        // Reset all calibration variables
-        isCalibration = false;
-        isReportSent = false;
-        dataSendAborted = false;
-        minRangeThreshold = -1;
-        maxRangeThreshold = -1;
-        maxRangeChecked = false;
-        minRangeChecked = false;
-        previous = -1;
-        cntr = 0;
-        recordsToDo = 0;
-        Serial.println("Resetted");
-        break;
-      case 'o':
-        if (minRangeThreshold == -1) {
-          minRangeThreshold = photoResValue + DIFF;
-          Serial.println("'o' to confirm. LIGHT ON");
-        } else if (maxRangeThreshold == -1) {
-          maxRangeThreshold = photoResValue - DIFF;
-          isCalibration = true;
+void startCalibration() {
+  if (minRange == -1) {
+    minRange = getPhotoResValue() + DIFF;
+    Serial.println("'o' to confirm. LIGHT ON");
+  } else if (maxRange == -1) {
+    maxRange = getPhotoResValue() - DIFF;
+    isCalibration = true;
 
-          Wire.beginTransmission(SLAVE_ADDRESS);
-          Wire.write('r');
-          recordsToDo = static_cast<int>((maxRangeThreshold - minRangeThreshold + 1) / STEP);
-          Wire.write(recordsToDo);
-          Serial.print("Awaiting records: ");
-          Serial.println(recordsToDo);
-          Wire.endTransmission(SLAVE_ADDRESS);
+    Wire.beginTransmission(SLAVE_ADDRESS);
+    Wire.write('r');
+    recordsToDo = static_cast<int>((maxRange - minRange + 1) / STEP);
+    Wire.write(recordsToDo);
+    Serial.print("awaiting records: ");
+    Serial.println(recordsToDo);
+    Wire.endTransmission(SLAVE_ADDRESS);
+    Serial.println(minRange);
+    Serial.println(maxRange);
+    Serial.println("WATCH OUT!!! DANGEROUS CALIBRATION");
+    delay(5000);
+  }
+}
 
-          Serial.println(minRangeThreshold);
-          Serial.println(maxRangeThreshold);
-          Serial.println("WATCH OUT!!! DANGEROUS CALIBRATION");
-          delay(5000);
-        }
-        break;
-    }
+void processCommand(char cmd) {
+  switch (cmd) {
+    case 's':
+      toggleShowData();
+      break;
+    case 'c':
+      Serial.println("'o' to confirm. LIGHT OFF");
+      break;
+    case 'r':
+      resetCalibration();
+      break;
+    case 'o':
+      startCalibration();
+      break;
   }
 }
 
 void loop() {
   if (showData) {
-    Serial.print("Value: ");
-    Serial.println(photoResValue);
+    Serial.print("value: ");
+    Serial.println(getPhotoResValue());
   }
 
-  handleSerialInput();
+  if (Serial.available()) {
+    char cmd = Serial.read();
+    processCommand(cmd);
+  }
 
   if (isCalibration) {
     Wire.beginTransmission(SLAVE_ADDRESS);
@@ -109,43 +108,42 @@ void loop() {
     }
 
     if (isReportSent && !dataSendAborted) {
-      int res = photoResValue;
+      int res = getPhotoResValue();
 
-      if (res <= minRangeThreshold && !minRangeChecked) {
+      if (res <= minRange && !minRangeChecked) {
         minRangeChecked = true;
       }
-
-      if (res >= minRangeThreshold && !maxRangeChecked) {
+      if (res >= minRange && !maxRangeChecked) {
         maxRangeChecked = true;
       }
 
-      if (res - previous >= STEP) {
+      if (res - previousValue >= STEP) {
         Serial.print("Value for calibration: ");
-        Serial.println(photoResValue);
+        Serial.println(getPhotoResValue());
         Wire.write(static_cast<int>(res / ARCHIVE_FACTOR));
-        cntr += 1;
-        previous = res;
+        counter += 1;
+        previousValue = res;
       }
 
       Wire.endTransmission(SLAVE_ADDRESS);
 
-      if (previous == -1) {
-        previous = res;
+      if (previousValue == -1) {
+        previousValue = res;
       }
     }
 
-    if (minRangeChecked && maxRangeChecked && cntr >= recordsToDo) {
+    if (minRangeChecked && maxRangeChecked && counter >= recordsToDo) {
       isCalibration = false;
       isReportSent = false;
       dataSendAborted = false;
 
-      minRangeThreshold = -1;
-      maxRangeThreshold = -1;
+      minRange = -1;
+      maxRange = -1;
 
       Wire.beginTransmission(SLAVE_ADDRESS);
       Wire.write('s');
       Wire.endTransmission(SLAVE_ADDRESS);
-      Serial.println("Finished... (Dies)");
+      Serial.println("finished... (dies)");
       showData = true;
     }
   }
