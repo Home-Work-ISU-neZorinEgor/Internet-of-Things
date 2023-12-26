@@ -2,7 +2,7 @@ import time
 import paho.mqtt.client as paho
 import serial
 
-port = "COM10"
+port = "COM9"
 connection = serial.Serial(port, timeout=1)
 
 
