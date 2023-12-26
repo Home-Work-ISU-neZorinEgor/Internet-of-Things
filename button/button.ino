@@ -1,42 +1,42 @@
-const int BUTTON_PIN = 2;
-const int BOUNCE_TIME = 50;
-const int PRESSED = LOW;
+const int PIN = 2;
+const int BTN_BOUNCE = 50;
+const int PRESSED_STATE = LOW;
 
-volatile bool buttonPressed = false;
-volatile int counter = 0;
+volatile bool btnPressed = false;
+volatile int count = 0;
 
-void setup() {
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
-  Serial.begin(9600);
-  attachInterrupt(0, handleButtonClick, FALLING);
+void setupBtn() {
+  pinMode(PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(PIN), []() { btnPressed = true; }, FALLING);
+}
 
-  // Timer setup
-  TCCR1A = 0;
-  TCCR1B = 0;
-  TCNT1 = 0;
+void setupTimer() {
+  TCCR1B = (1 << WGM12) | (1 << CS12);
   OCR1A = 3125;
-  TCCR1B |= (1 << WGM12);
-  TCCR1B |= (1 << CS12); 
   TIMSK1 |= (1 << OCIE1A);
 }
 
 ISR(TIMER1_COMPA_vect) {
-  if (buttonPressed && digitalRead(BUTTON_PIN) == PRESSED) {
-    counter++;
-    buttonPressed = false;
+  if (btnPressed && digitalRead(PIN) == PRESSED_STATE) {
+    count++;
+    btnPressed = false;
+  }
+}
+
+void printCount() {
+  if (count > 0) {
+    Serial.println(count);
+    count = 0;
   }
 }
 
 void loop() {
   delay(1000);
-  if (counter > 0) {
-    Serial.println(counter);
-    counter = 0;
-  }
+  printCount();
 }
 
-void handleButtonClick() {
-  if (!buttonPressed) {
-    buttonPressed = true;
-  }
+void setup() {
+  Serial.begin(9600);
+  setupBtn();
+  setupTimer();
 }

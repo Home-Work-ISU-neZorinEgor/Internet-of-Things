@@ -20,7 +20,7 @@ void setup() {
   String topic = "esp8266Egor/command";
   String state_topic = "esp8266Egor/state";
   mqtt_client.subscribe(topic.c_str());
-  mqtt_client.publish(state_topic.c_str(), "hello");
+  mqtt_client.publish(state_topic.c_str(), "4");
   Serial.println("See me at " + state_topic);
 }
 

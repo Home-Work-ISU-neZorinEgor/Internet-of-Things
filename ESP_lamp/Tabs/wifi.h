@@ -22,7 +22,7 @@ bool start_AP_MODE() {
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(ap_IP, ap_IP, IPAddress(255, 255, 255, 0));
   WiFi.softAP((AP_NAME + id()).c_str(), AP_PASSWORD.c_str());
-  Serial.print("WiFi started in AP mode " + ssid_id);
+  Serial.print("WiFi started in AP mode with SSID: " + ssid_id);
   return true;
 }
 
@@ -42,6 +42,6 @@ bool init_WIFI(bool ap_mode, String login, String password) {
     start_client_mode(login, password);
     ip = WiFi.localIP().toString();
   }
-  Serial.println("IP address: " + ip);
+  Serial.println("Connected to WiFi. IP address: " + ip);
   return true; 
 }

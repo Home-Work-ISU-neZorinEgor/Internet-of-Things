@@ -1,8 +1,6 @@
-// CLI WiFi client
-const char* CLI_SSID = "Honor 8X"; //делал на wifi Вадима
+const char* CLI_SSID = "Honor 8X"; //делал на wifi Вадима в библиотеке
 const char* CLI_PASS = "12233377";
 
-// Access login and password
 const char* ACCESS_LOGIN = "user";
 const char* ACCESS_PASSWORD = "userEg";
 

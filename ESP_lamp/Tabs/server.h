@@ -6,20 +6,20 @@ bool signed_up = false;
 
 void handle_root() {
   String page_code = "<form action=\"/LED\" method=\"POST\">";
-  page_code += "<input type=\"text\" name=\"login\" placeholder=\"login\">";
-  page_code += "<input type=\"password\" name=\"password\" placeholder=\"password\">";
+  page_code += "<input type=\"text\" name=\"login\" placeholder=\"Enter login\">";
+  page_code += "<input type=\"password\" name=\"password\" placeholder=\"Enter password\">";
   page_code += "<input type=\"submit\"></form>";
   server.send(200, "text/html", page_code);
 }
 
 void handle_auth() {
-  String message = "Number of args:";
+  String message = "Number of arguments received: ";
   message += server.args();
   Serial.println(message);
   String login;
   String password;
-  bool isValideLogin = false;
-  bool isValidePass = false;
+  bool isValidLogin = false;
+  bool isValidPass = false;
   bool mode_AP = true;                         
 
   for (int i = 0; i < server.args(); i++) {
@@ -34,8 +34,7 @@ void handle_auth() {
   server.send(200, "text/plain", "");      
   bool res = init_WIFI(false, login, password);
   if (res) {
-    // server.softAPDisconnect();
-    Serial.println("MQTT started");
+    Serial.println("MQTT started successfully");
     init_MQTT();
     String topic = "house/bulb1";
     mqtt_client.subscribe(topic.c_str());
@@ -43,9 +42,8 @@ void handle_auth() {
   Serial.println(message);
 }
 
-
 void handle_not_found() {
-  server.send(404, "text/html", "404: check URL");
+  server.send(404, "text/html", "404: Check the URL");
 }
 
 void server_init() {
@@ -54,6 +52,6 @@ void server_init() {
   server.onNotFound(handle_not_found);
 
   server.begin();
-  Serial.print("Server started on port ");
+  Serial.print("Web server started on port ");
   Serial.println(WEB_SERVER_PORT);
 }
