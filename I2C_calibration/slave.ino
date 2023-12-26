@@ -1,7 +1,7 @@
 #include <Wire.h>
 
 #define PHOTO_RES_IN A0
-#define I2C_ADDRESS 9
+#define I2C_ADDRESS 5
 #define LED_PIN 13
 
 int maxRecords = 0;
