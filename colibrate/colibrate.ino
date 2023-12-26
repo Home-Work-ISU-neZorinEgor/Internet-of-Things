@@ -54,28 +54,33 @@ void performMeasurement() {
 
   distanceInCm = (duration / 2) / 29.1;
 
-  if (checkIsEnough()) {
-    if (!isMeasurementShown) {
-      sendMeasurement();
-      isMeasurementShown = true;
-    }
-  } else {
-    if (distanceInCm >= minRange && distanceInCm <= maxRange) {
-      double val = analogRead(A0);
-      val = val * 5.0 / 2046.0;
-      values[distanceInCm - minRange] = val;
+  switch (checkIsEnough()) {
+    case true:
+      if (!isMeasurementShown) {
+        sendMeasurement();
+        isMeasurementShown = true;
+      }
+      break;
 
-      Serial.print("Distance to object: ");
-      Serial.print(distanceInCm);
-      Serial.print(" cm. ");
-      Serial.println(val);
-    } else {
-      Serial.print("Distance outside permissible range: ");
-      Serial.print(minRange);
-      Serial.print(", ");
-      Serial.println(maxRange);
-    }
+    case false:
+      if (distanceInCm >= minRange && distanceInCm <= maxRange) {
+        double val = analogRead(A0);
+        val = val * 5.0 / 2046.0;
+        values[distanceInCm - minRange] = val;
+
+        Serial.print("Distance to object: ");
+        Serial.print(distanceInCm);
+        Serial.print(" cm. ");
+        Serial.println(val);
+      } else {
+        Serial.print("Distance outside permissible range: ");
+        Serial.print(minRange);
+        Serial.print(", ");
+        Serial.println(maxRange);
+      }
+      break;
   }
+
   delay(1000);
 }
 
